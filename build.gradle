@@ -1,0 +1,62 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        mavenLocal()
+        google()
+        maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
+    }
+    dependencies {
+        classpath "io.github.fourlastor:construo:2.1.0"
+        if (enableGraalNative == 'true') {
+            classpath "org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin:0.9.28"
+        }
+    }
+}
+
+allprojects {
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+
+    idea {
+        module {
+            outputDir     = file('build/classes/java/main')
+            testOutputDir = file('build/classes/java/test')
+        }
+    }
+}
+
+configure(subprojects) {
+    apply plugin: 'java-library'
+    java.sourceCompatibility = 11
+    java.targetCompatibility = 11
+
+    tasks.withType(JavaCompile).configureEach {
+        options.incremental = true
+        options.encoding    = 'UTF-8'
+    }
+
+    tasks.register('generateAssetList') {
+        inputs.dir("${project.rootDir}/assets/")
+        File assetsFolder = new File("${project.rootDir}/assets/")
+        File assetsFile   = new File(assetsFolder, "assets.txt")
+        assetsFile.delete()
+        fileTree(assetsFolder).collect { assetsFolder.relativePath(it) }.sort().each {
+            assetsFile.append(it + "\n")
+        }
+    }
+    processResources.dependsOn 'generateAssetList'
+}
+
+subprojects {
+    version     = "$projectVersion"
+    ext.appName = 'RailShooter'
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
+        maven { url = 'https://jitpack.io' }
+    }
+}
+
+eclipse.project.name = 'RailShooter' + '-parent'
